@@ -171,6 +171,8 @@ class LogStash::Outputs::Kafka < LogStash::Outputs::Base
 
   # The topic to produce messages to
   config :topic_id, :validate => :string, :required => true
+  # The partition to produce messages to
+  config :partition, :validate => :number, :required => false
   # Serializer class for the value of the message
   config :value_serializer, :validate => :string, :default => 'org.apache.kafka.common.serialization.StringSerializer'
 
@@ -295,7 +297,9 @@ class LogStash::Outputs::Kafka < LogStash::Outputs::Base
   private
 
   def write_to_kafka(event, serialized_data)
-    if @message_key.nil?
+    if not @partition.nil?
+      record = ProducerRecord.new(event.sprintf(@topic_id), event.sprintf(@partition).to_i, if @message_key.nil? then '' else event.sprintf(@message_key) end, serialized_data)
+    elsif @message_key.nil?
       record = ProducerRecord.new(event.sprintf(@topic_id), serialized_data)
     else
       record = ProducerRecord.new(event.sprintf(@topic_id), event.sprintf(@message_key), serialized_data)
